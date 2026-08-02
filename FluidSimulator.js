@@ -128,6 +128,8 @@ class FluidSimulator {
 		this.resizeFrameRequested = false;
 		this.needsClear = true;
 		this.contextConfigured = false;
+		this.resizeDebounceHandle = null;
+		this.isResizing = false;
 
 		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
 		this.resizeObserver.observe(this.canvas);
@@ -178,12 +180,14 @@ class FluidSimulator {
 		if (!sizeChanged) return;
 
 		this.pendingResize = { width, height };
+		this.isResizing = true;
 
-		if (this.resizeFrameRequested) return;
-		this.resizeFrameRequested = true;
+		if (this.resizeDebounceHandle) {
+			clearTimeout(this.resizeDebounceHandle);
+		}
 
-		requestAnimationFrame(() => {
-			this.resizeFrameRequested = false;
+		this.resizeDebounceHandle = setTimeout(() => {
+			this.resizeDebounceHandle = null;
 			if (!this.pendingResize) return;
 
 			const nextSize = this.pendingResize;
@@ -199,8 +203,10 @@ class FluidSimulator {
 				format: this.format,
 				alphaMode: "premultiplied"
 			});
+
 			this.needsClear = true;
-		});
+			this.isResizing = false;
+		}, 80);
 	}
 
 	initBuffers(numParticles = 10000) {
@@ -343,6 +349,11 @@ class FluidSimulator {
 	}
 
 	frame() {
+		if (!this.contextConfigured || !this.device || !this.computePipeline || !this.renderPipeline || !this.particleBuffer) {
+			requestAnimationFrame(() => this.frame());
+			return;
+		}
+
 		const now = performance.now();
 		const deltaTime = Math.min(0.033, Math.max(0.001, (now - this.lastFrameTime) / 1000));
 		this.lastFrameTime = now;
@@ -363,7 +374,7 @@ class FluidSimulator {
 			colorAttachments: [{
 				view: this.context.getCurrentTexture().createView(),
 				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 0.0 },
-				loadOp: this.needsClear ? "clear" : "load",
+				loadOp: this.needsClear && !this.isResizing ? "clear" : "load",
 				storeOp: "store"
 			}]
 		});
