@@ -35,7 +35,5 @@ const canvas = document.getElementById("canvas");
 const fluidSimulation = new FluidSimulation(canvas);
 
 window.onload = () => {
-	fluidSimulation.initGPU().then(() => {
-		// Additional initialization code can go here
-	}
-}
+	fluidSimulation.initGPU();
+};
