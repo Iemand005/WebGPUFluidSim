@@ -34,6 +34,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     // --- VLOEISTOF INSTELLINGEN ---
     let dt = max(simParams.deltaTime, 0.0001);
+    let dtScale = dt * 60.0;
     let interaction_radius = 0.06;
     let repel_strength = 0.0003;
     let gravity = 0.0004;
@@ -51,7 +52,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
         if (dist < interaction_radius && dist > 0.0001) {
             let overlap = interaction_radius - dist;
-            let force = (overlap / interaction_radius) * repel_strength * dt;
+            let force = (overlap / interaction_radius) * repel_strength * dtScale;
             pressure_force += normalize(dir) * force;
         }
     }
@@ -61,7 +62,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let mouse_dist = length(to_mouse);
     if (mouse_dist < mouseState.radius && mouse_dist > 0.0001) {
         let influence = 1.0 - (mouse_dist / mouseState.radius);
-        let mouse_force = normalize(to_mouse) * influence * 0.0012 * dt;
+        let mouse_force = normalize(to_mouse) * influence * 0.0012 * dtScale;
 
         if (mouseState.is_active != 0u) {
             p.vel -= mouse_force;
@@ -73,11 +74,11 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     // --- KRACHTEN TOEPASSEN & INTEGRATIE ---
     p.vel += pressure_force;
-    p.vel.y -= gravity * dt;
+    p.vel.y -= gravity * dtScale;
     p.vel *= damping;
 
     // Update de positie
-    p.pos += p.vel * dt;
+    p.pos += p.vel * dtScale;
 
     // --- BOTSER DETECTIE (Grenzen van het scherm) ---
     let bound = 0.95;
