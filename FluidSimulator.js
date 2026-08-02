@@ -14,9 +14,9 @@ struct MouseState {
 
 struct SimParams {
     deltaTime: f32,
-    _pad0: f32,
-    _pad1: f32,
-    _pad2: f32,
+    externalForceX: f32,
+    externalForceY: f32,
+    _pad: f32,
 }
 
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
@@ -35,6 +35,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     // --- VLOEISTOF INSTELLINGEN ---
     let dt = max(simParams.deltaTime, 0.0001);
     let dtScale = dt * 60.0;
+    let externalForce = vec2<f32>(simParams.externalForceX, simParams.externalForceY);
     let interaction_radius = 0.06;
     let repel_strength = 0.0003;
     let gravity = 0.0004;
@@ -74,6 +75,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     // --- KRACHTEN TOEPASSEN & INTEGRATIE ---
     p.vel += pressure_force;
+    p.vel += externalForce;
     p.vel.y -= gravity * dtScale;
     p.vel *= damping;
 
@@ -123,6 +125,7 @@ class FluidSimulator {
 		this.numParticles = 0;
 		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, isActive: 0 };
 		this.pointerActive = false;
+		this.externalForce = { x: 0, y: 0 };
 		this.lastFrameTime = performance.now();
 		this.pendingResize = null;
 		this.resizeFrameRequested = false;
@@ -139,6 +142,7 @@ class FluidSimulator {
 		this.canvas.addEventListener("pointerup", () => this.handlePointerUp());
 		this.canvas.addEventListener("pointerleave", () => this.handlePointerUp());
 		this.canvas.addEventListener("pointercancel", () => this.handlePointerUp());
+		window.addEventListener("message", (event) => this.handleWindowMessage(event));
 	}
 
 	async initGPU() {
@@ -287,6 +291,27 @@ class FluidSimulator {
 		});
 	}
 
+	handleWindowMessage(event) {
+		try {
+			const payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+			const data = payload && typeof payload === "object" ? payload.data : null;
+			const vector = data && typeof data === "object" && "difference" in data ? data.difference : data;
+
+			if (vector && typeof vector.x === "number" && typeof vector.y === "number") {
+				const forceScale = 0.0005;
+				this.externalForce.x = vector.x * forceScale;
+				this.externalForce.y = vector.y * forceScale;
+				this.updateSimParamsBuffer(1 / 60);
+				return;
+			}
+		} catch (error) {
+			// Ignore malformed or unrelated window messages.
+		}
+
+		this.externalForce.x = 0;
+		this.externalForce.y = 0;
+	}
+
 	getNormalizedMousePosition(event) {
 		const rect = this.canvas.getBoundingClientRect();
 		const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -345,6 +370,9 @@ class FluidSimulator {
 
 		const simData = new Float32Array(4);
 		simData[0] = deltaTime;
+		simData[1] = this.externalForce.x;
+		simData[2] = this.externalForce.y;
+		simData[3] = 0;
 		this.device.queue.writeBuffer(this.simParamsBuffer, 0, simData);
 	}
 
@@ -358,6 +386,8 @@ class FluidSimulator {
 		const deltaTime = Math.min(0.033, Math.max(0.001, (now - this.lastFrameTime) / 1000));
 		this.lastFrameTime = now;
 
+		this.externalForce.x *= 0.9;
+		this.externalForce.y *= 0.9;
 		this.updateMouseBuffer();
 		this.updateSimParamsBuffer(deltaTime);
 
