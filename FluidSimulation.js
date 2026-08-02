@@ -143,6 +143,40 @@ class FluidSimulation {
 		});
 	}
 
+	frame() {
+		const commandEncoder = this.device.createCommandEncoder();
+
+		// --- 1. COMPUTE PASS (Simulatie) ---
+		const computePass = commandEncoder.beginComputePass();
+		computePass.setPipeline(this.computePipeline);
+		computePass.setBindGroup(0, this.computeBindGroup);
+		// Bereken hoeveel workgroups we nodig hebben (numParticles / workgroup_size van 64)
+		const workgroupCount = Math.ceil(this.numParticles / 64);
+		computePass.dispatchWorkgroups(workgroupCount);
+		computePass.end();
+
+		// --- 2. RENDER PASS (Tekenen) ---
+		const renderPass = commandEncoder.beginRenderPass({
+			colorAttachments: [{
+				view: this.context.getCurrentTexture().createView(),
+				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 1.0 }, // Donkere achtergrond
+				loadOp: "clear",
+				storeOp: "store"
+			}]
+		});
+		renderPass.setPipeline(this.renderPipeline);
+		renderPass.setVertexBuffer(0, this.particleBuffer); // Geef de buffer direct als vertex input
+		renderPass.draw(this.numParticles);
+		renderPass.end();
+
+		// Submit alles in één keer naar de GPU
+		this.device.queue.submit([commandEncoder.finish()]);
+
+		// Volgende frame aanvragen
+		requestAnimationFrame(() => this.frame());
+	}
+
+
 
 }
 
