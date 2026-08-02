@@ -114,12 +114,6 @@ class FluidSimulator {
 		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, isActive: 0 };
 		this.pointerActive = false;
 
-		this.canvas.style.touchAction = "none";
-		this.canvas.style.cursor = "crosshair";
-		this.canvas.style.width = "100%";
-		this.canvas.style.height = "100%";
-		this.canvas.style.display = "block";
-
 		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
 		this.resizeObserver.observe(this.canvas);
 
