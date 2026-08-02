@@ -9,7 +9,7 @@ struct MouseState {
     pos: vec2<f32>,
     vel: vec2<f32>,
     radius: f32,
-    active: u32,
+    is_active: u32,
 }
 
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
@@ -54,7 +54,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         let influence = 1.0 - (mouse_dist / mouseState.radius);
         let mouse_force = normalize(to_mouse) * influence * 0.0012;
 
-        if (mouseState.active != 0u) {
+        if (mouseState.is_active != 0u) {
             p.vel -= mouse_force;
             p.vel += mouseState.vel * 0.001;
         } else {
@@ -111,7 +111,7 @@ class FluidSimulation {
 
 		this.format = "";
 		this.numParticles = 0;
-		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, active: 0 };
+		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, isActive: 0 };
 		this.pointerActive = false;
 
 		this.canvas.style.touchAction = "none";
@@ -220,7 +220,7 @@ class FluidSimulation {
 		this.mouseState.vy = (pos.y - this.mouseState.y) * 0.5;
 		this.mouseState.x = pos.x;
 		this.mouseState.y = pos.y;
-		this.mouseState.active = this.pointerActive ? 1 : 0;
+		this.mouseState.isActive = this.pointerActive ? 1 : 0;
 		this.updateMouseBuffer();
 	}
 
@@ -232,13 +232,13 @@ class FluidSimulation {
 		this.mouseState.y = pos.y;
 		this.mouseState.vx = 0;
 		this.mouseState.vy = 0;
-		this.mouseState.active = 1;
+		this.mouseState.isActive = 1;
 		this.updateMouseBuffer();
 	}
 
 	handlePointerUp() {
 		this.pointerActive = false;
-		this.mouseState.active = 0;
+		this.mouseState.isActive = 0;
 		this.mouseState.vx = 0;
 		this.mouseState.vy = 0;
 		this.updateMouseBuffer();
@@ -253,7 +253,7 @@ class FluidSimulation {
 		mouseData[2] = this.mouseState.vx;
 		mouseData[3] = this.mouseState.vy;
 		mouseData[4] = this.mouseState.radius;
-		mouseData[5] = this.mouseState.active;
+		mouseData[5] = this.mouseState.isActive;
 		mouseData[6] = 0;
 		mouseData[7] = 0;
 
