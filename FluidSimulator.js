@@ -114,8 +114,8 @@ class FluidSimulator {
 		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, isActive: 0 };
 		this.pointerActive = false;
 
-		this.canvas.style.touchAction = "none";
-		this.canvas.style.cursor = "crosshair";
+		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
+		this.resizeObserver.observe(this.canvas);
 
 		this.canvas.addEventListener("pointermove", (event) => this.handlePointerMove(event));
 		this.canvas.addEventListener("pointerdown", (event) => this.handlePointerDown(event));
@@ -131,10 +131,28 @@ class FluidSimulator {
 		this.device = await adapter.requestDevice();
 
 		this.format = navigator.gpu.getPreferredCanvasFormat();
-		this.context.configure({ device: this.device, format: this.format, alphaMode: "opaque" });
+		this.resizeCanvas();
 
 		console.log("WebGPU initialization complete! Context bound successfully.");
 		return true;
+	}
+
+	resizeCanvas() {
+		if (!this.device || !this.context) return;
+
+		const width = Math.max(1, Math.floor(this.canvas.clientWidth));
+		const height = Math.max(1, Math.floor(this.canvas.clientHeight));
+
+		if (this.canvas.width !== width || this.canvas.height !== height) {
+			this.canvas.width = width;
+			this.canvas.height = height;
+		}
+
+		this.context.configure({
+			device: this.device,
+			format: this.format,
+			alphaMode: "premultiplied"
+		});
 	}
 
 	initBuffers(numParticles = 10000) {
@@ -275,7 +293,7 @@ class FluidSimulator {
 		const renderPass = commandEncoder.beginRenderPass({
 			colorAttachments: [{
 				view: this.context.getCurrentTexture().createView(),
-				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 1.0 },
+				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 0.0 },
 				loadOp: "clear",
 				storeOp: "store"
 			}]
@@ -298,3 +316,5 @@ fluidSimulation.initGPU().then(() => {
 	fluidSimulation.initPipelines();
 	fluidSimulation.frame();
 });
+
+window.oncontextmenu = e => e.preventDefault();
