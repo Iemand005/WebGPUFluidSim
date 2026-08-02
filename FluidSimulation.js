@@ -8,7 +8,10 @@ class FluidSimulation {
     }
 
     async initGPU() {
-        // TypeScript will now auto-complete navigator.gpu, GPUDevice, etc.
+        if (!navigator.gpu) {
+            this.showError("WebGPU is not supported by your current browser engine.");
+            return false;
+        }
         const adapter = await navigator.gpu.requestAdapter();
     }
 
