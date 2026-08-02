@@ -124,6 +124,9 @@ class FluidSimulator {
 		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, isActive: 0 };
 		this.pointerActive = false;
 		this.lastFrameTime = performance.now();
+		this.pendingResize = null;
+		this.resizeFrameRequested = false;
+		this.needsClear = true;
 
 		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
 		this.resizeObserver.observe(this.canvas);
@@ -154,15 +157,31 @@ class FluidSimulator {
 		const width = Math.max(1, Math.floor(this.canvas.clientWidth));
 		const height = Math.max(1, Math.floor(this.canvas.clientHeight));
 
-		if (this.canvas.width !== width || this.canvas.height !== height) {
-			this.canvas.width = width;
-			this.canvas.height = height;
-		}
+		if (this.canvas.width === width && this.canvas.height === height) return;
 
-		this.context.configure({
-			device: this.device,
-			format: this.format,
-			alphaMode: "premultiplied"
+		this.pendingResize = { width, height };
+
+		if (this.resizeFrameRequested) return;
+		this.resizeFrameRequested = true;
+
+		requestAnimationFrame(() => {
+			this.resizeFrameRequested = false;
+			if (!this.pendingResize) return;
+
+			const nextSize = this.pendingResize;
+			this.pendingResize = null;
+
+			if (this.canvas.width !== nextSize.width || this.canvas.height !== nextSize.height) {
+				this.canvas.width = nextSize.width;
+				this.canvas.height = nextSize.height;
+			}
+
+			this.context.configure({
+				device: this.device,
+				format: this.format,
+				alphaMode: "premultiplied"
+			});
+			this.needsClear = true;
 		});
 	}
 
@@ -326,7 +345,7 @@ class FluidSimulator {
 			colorAttachments: [{
 				view: this.context.getCurrentTexture().createView(),
 				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 0.0 },
-				loadOp: "clear",
+				loadOp: this.needsClear ? "clear" : "load",
 				storeOp: "store"
 			}]
 		});
@@ -335,6 +354,7 @@ class FluidSimulator {
 		renderPass.draw(this.numParticles);
 		renderPass.end();
 
+		this.needsClear = false;
 		this.device.queue.submit([commandEncoder.finish()]);
 		requestAnimationFrame(() => this.frame());
 	}
