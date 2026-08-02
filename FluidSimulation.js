@@ -17,6 +17,7 @@ class FluidSimulation {
 		if (!navigator.gpu) throw new Error("WebGPU is not supported by your current browser engine.");
 
 		const adapter = await navigator.gpu.requestAdapter();
+		// adapter.
 
 		this.device = await adapter.requestDevice();
 
