@@ -1,10 +1,10 @@
 class FluidSimulation {
 
-    /** @type {CanvasRenderingContext2D} */
+    /** @param {HTMLCanvasElement} canvas */
     constructor(canvas) {
         this.canvas = canvas;
 
-        this.context = canvas.getContext('');
+        this.context = canvas.getContext('webgpu');
     }
 
 }

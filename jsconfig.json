@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "module": "commonjs",
+    "strict": true,
+    "types": ["@webgpu/types"]
+  }
+}npm install --save-dev @webgpu/types
