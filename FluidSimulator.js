@@ -127,6 +127,7 @@ class FluidSimulator {
 		this.pendingResize = null;
 		this.resizeFrameRequested = false;
 		this.needsClear = true;
+		this.contextConfigured = false;
 
 		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
 		this.resizeObserver.observe(this.canvas);
@@ -156,8 +157,25 @@ class FluidSimulator {
 
 		const width = Math.max(1, Math.floor(this.canvas.clientWidth));
 		const height = Math.max(1, Math.floor(this.canvas.clientHeight));
+		const sizeChanged = this.canvas.width !== width || this.canvas.height !== height;
 
-		if (this.canvas.width === width && this.canvas.height === height) return;
+		if (!this.contextConfigured) {
+			if (sizeChanged) {
+				this.canvas.width = width;
+				this.canvas.height = height;
+			}
+
+			this.context.configure({
+				device: this.device,
+				format: this.format,
+				alphaMode: "premultiplied"
+			});
+			this.contextConfigured = true;
+			this.needsClear = true;
+			return;
+		}
+
+		if (!sizeChanged) return;
 
 		this.pendingResize = { width, height };
 
