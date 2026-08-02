@@ -29,11 +29,33 @@ class FluidSimulation {
 		return true;
 	}
 
+	initBuffers(numParticles = 5000) {
+		this.numParticles = numParticles;
+
+		const particleData = new Float32Array(numParticles * 4);
+
+		for (let i = 0; i < numParticles; i++) {
+			particleData[i * 4 + 0] = (Math.random() * 2) - 1; // x
+			particleData[i * 4 + 1] = (Math.random() * 2) - 1; // y
+			particleData[i * 4 + 2] = (Math.random() - 0.5) * 0.1; // vx
+			particleData[i * 4 + 3] = (Math.random() - 0.5) * 0.1; // vy
+		}
+
+		// Belangrijk: STORAGE (voor compute) én VERTEX (voor renderen)
+		this.particleBuffer = this.device.createBuffer({
+			label: "Particle Buffer",
+			size: particleData.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+			mappedAtCreation: true
+		});
+
+		new Float32Array(this.particleBuffer.getMappedRange()).set(particleData);
+		this.particleBuffer.unmap();
+	}
+
 }
 
 const canvas = document.getElementById("canvas");
 const fluidSimulation = new FluidSimulation(canvas);
 
-window.onload = () => {
-	fluidSimulation.initGPU();
-};
+fluidSimulation.initGPU();
