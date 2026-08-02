@@ -4,15 +4,23 @@ class FluidSimulation {
     constructor(canvas) {
         this.canvas = canvas;
 
-        this.context = canvas.getContext('webgpu');
+        this.device = null;
+
+        this.context = canvas.getContext("webgpu");
+
+        if (!this.context) throw new Error("Failed to initialize the canvas webgpu context.");
+
+        this.format = "";
     }
 
     async initGPU() {
-        if (!navigator.gpu) {
-            this.showError("WebGPU is not supported by your current browser engine.");
-            return false;
-        }
+        if (!navigator.gpu) throw new Error("WebGPU is not supported by your current browser engine.");
+
         const adapter = await navigator.gpu.requestAdapter();
+
+        this.device = await adapter.requestDevice();
+
+        this.format = navigator.gpu.getPreferredCanvasFormat();
     }
 
 }
