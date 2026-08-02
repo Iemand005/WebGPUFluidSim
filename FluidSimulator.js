@@ -12,8 +12,16 @@ struct MouseState {
     is_active: u32,
 }
 
+struct SimParams {
+    deltaTime: f32,
+    _pad0: f32,
+    _pad1: f32,
+    _pad2: f32,
+}
+
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read> mouseState: MouseState;
+@group(0) @binding(2) var<uniform> simParams: SimParams;
 
 // --- COMPUTE SHADER (Simulatie) ---
 @compute @workgroup_size(64)
@@ -25,6 +33,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     var p = particles[index];
 
     // --- VLOEISTOF INSTELLINGEN ---
+    let dt = max(simParams.deltaTime, 0.0001);
     let interaction_radius = 0.06;
     let repel_strength = 0.0003;
     let gravity = 0.0004;
@@ -42,7 +51,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
         if (dist < interaction_radius && dist > 0.0001) {
             let overlap = interaction_radius - dist;
-            let force = (overlap / interaction_radius) * repel_strength;
+            let force = (overlap / interaction_radius) * repel_strength * dt;
             pressure_force += normalize(dir) * force;
         }
     }
@@ -52,7 +61,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let mouse_dist = length(to_mouse);
     if (mouse_dist < mouseState.radius && mouse_dist > 0.0001) {
         let influence = 1.0 - (mouse_dist / mouseState.radius);
-        let mouse_force = normalize(to_mouse) * influence * 0.0012;
+        let mouse_force = normalize(to_mouse) * influence * 0.0012 * dt;
 
         if (mouseState.is_active != 0u) {
             p.vel -= mouse_force;
@@ -64,11 +73,11 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     // --- KRACHTEN TOEPASSEN & INTEGRATIE ---
     p.vel += pressure_force;
-    p.vel.y -= gravity;
+    p.vel.y -= gravity * dt;
     p.vel *= damping;
 
     // Update de positie
-    p.pos += p.vel;
+    p.pos += p.vel * dt;
 
     // --- BOTSER DETECTIE (Grenzen van het scherm) ---
     let bound = 0.95;
@@ -113,6 +122,7 @@ class FluidSimulator {
 		this.numParticles = 0;
 		this.mouseState = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.18, isActive: 0 };
 		this.pointerActive = false;
+		this.lastFrameTime = performance.now();
 
 		this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
 		this.resizeObserver.observe(this.canvas);
@@ -183,7 +193,14 @@ class FluidSimulator {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
 		});
 
+		this.simParamsBuffer = this.device.createBuffer({
+			label: "Simulation Parameters Buffer",
+			size: 16,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		});
+
 		this.updateMouseBuffer();
+		this.updateSimParamsBuffer(1 / 60);
 	}
 
 	initPipelines() {
@@ -199,7 +216,8 @@ class FluidSimulator {
 			layout: this.computePipeline.getBindGroupLayout(0),
 			entries: [
 				{ binding: 0, resource: { buffer: this.particleBuffer } },
-				{ binding: 1, resource: { buffer: this.mouseBuffer } }
+				{ binding: 1, resource: { buffer: this.mouseBuffer } },
+				{ binding: 2, resource: { buffer: this.simParamsBuffer } }
 			]
 		});
 
@@ -278,8 +296,21 @@ class FluidSimulator {
 		this.device.queue.writeBuffer(this.mouseBuffer, 0, mouseData);
 	}
 
+	updateSimParamsBuffer(deltaTime) {
+		if (!this.simParamsBuffer) return;
+
+		const simData = new Float32Array(4);
+		simData[0] = deltaTime;
+		this.device.queue.writeBuffer(this.simParamsBuffer, 0, simData);
+	}
+
 	frame() {
+		const now = performance.now();
+		const deltaTime = Math.min(0.033, Math.max(0.001, (now - this.lastFrameTime) / 1000));
+		this.lastFrameTime = now;
+
 		this.updateMouseBuffer();
+		this.updateSimParamsBuffer(deltaTime);
 
 		const commandEncoder = this.device.createCommandEncoder();
 
