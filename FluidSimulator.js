@@ -38,8 +38,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let externalForce = vec2<f32>(simParams.externalForceX, simParams.externalForceY);
     let interaction_radius = 0.06;
     let repel_strength = 0.0003;
-    let gravity = 0.0004;
-    let damping = 0.97;
+    let gravity = 0.0012;
+    let damping = 0.95;
 
     var pressure_force = vec2<f32>(0.0, 0.0);
 
@@ -298,9 +298,9 @@ class FluidSimulator {
 			const vector = data && typeof data === "object" && "difference" in data ? data.difference : data;
 
 			if (vector && typeof vector.x === "number" && typeof vector.y === "number") {
-				const forceScale = 0.0005;
+				const forceScale = 0.0009;
 				this.externalForce.x = vector.x * forceScale;
-				this.externalForce.y = vector.y * forceScale;
+				this.externalForce.y = -vector.y * forceScale;
 				this.updateSimParamsBuffer(1 / 60);
 				return;
 			}
@@ -386,8 +386,8 @@ class FluidSimulator {
 		const deltaTime = Math.min(0.033, Math.max(0.001, (now - this.lastFrameTime) / 1000));
 		this.lastFrameTime = now;
 
-		this.externalForce.x *= 0.9;
-		this.externalForce.y *= 0.9;
+		this.externalForce.x *= 0.75;
+		this.externalForce.y *= 0.75;
 		this.updateMouseBuffer();
 		this.updateSimParamsBuffer(deltaTime);
 
