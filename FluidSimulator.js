@@ -38,7 +38,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let externalForce = vec2<f32>(simParams.externalForceX, simParams.externalForceY);
     let interaction_radius = 0.06;
     let repel_strength = 0.0003;
-    let gravity = 0.0042;
+    let gravity = 0.0022;
     let damping = 0.95;
 
     var pressure_force = vec2<f32>(0.0, 0.0);
