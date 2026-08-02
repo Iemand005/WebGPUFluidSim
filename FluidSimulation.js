@@ -11,21 +11,53 @@ struct Particle {
 @compute @workgroup_size(64)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let index = id.x;
-    if (index >= arrayLength(&particles)) { return; }
+    let num_particles = arrayLength(&particles);
+    if (index >= num_particles) { return; }
 
     var p = particles[index];
 
-    // Voeg simpele zwaartekracht toe
-    p.vel.y -= 0.0005;
+    // --- VLOEISTOF INSTELLINGEN ---
+    let interaction_radius = 0.06; // Hoe ver deeltjes elkaar beïnvloeden
+    let repel_strength = 0.0003;   // Kracht waarmee ze elkaar wegduwen
+    let gravity = 0.0004;          // Kracht van de zwaartekracht naar beneden
+    let damping = 0.97;            // Viscositeit / weerstand (voorkomt chaos)
 
-    // Update positie gebaseerd op snelheid
+    var pressure_force = vec2<f32>(0.0, 0.0);
+
+    // --- LUS DOOR ALLE DEELTJES (Interactie) ---
+    for (var i = 0u; i < num_particles; i = i + 1u) {
+        if (i == index) { continue; } // Sla jezelf over
+
+        let other = particles[i];
+        let dir = p.pos - other.pos;
+        let dist = length(dir);
+
+        // Als een ander deeltje te dichtbij is, duw het weg
+        if (dist < interaction_radius && dist > 0.0001) {
+            // Hoe dichterbij, hoe sterker de afstoting (lineaire afname)
+            let overlap = interaction_radius - dist;
+            let force = (overlap / interaction_radius) * repel_strength;
+            
+            pressure_force += normalize(dir) * force;
+        }
+    }
+
+    // --- KRCHTEN TOEPASSEN & INTEGRATIE ---
+    p.vel += pressure_force;
+    p.vel.y -= gravity;     // Zwaartekracht naar beneden trekken
+    p.vel *= damping;       // Snelheid dempen voor stroperigheid
+
+    // Update de positie
     p.pos += p.vel;
 
-    // Botsing met de randen van het scherm (-1.0 tot 1.0)
-    if (p.pos.x < -1.0 || p.pos.x > 1.0) { p.vel.x *= -0.8; p.pos.x = clamp(p.pos.x, -1.0, 1.0); }
-    if (p.pos.y < -1.0 || p.pos.y > 1.0) { p.vel.y *= -0.8; p.pos.y = clamp(p.pos.y, -1.0, 1.0); }
+    // --- BOTSER DETECTIE (Grenzen van het scherm) ---
+    let bound = 0.95; // Blijf net binnen de -1.0 en 1.0 clip space grenzen
+    if (p.pos.x < -bound) { p.pos.x = -bound; p.vel.x *= -0.5; }
+    if (p.pos.x >  bound) { p.pos.x =  bound; p.vel.x *= -0.5; }
+    if (p.pos.y < -bound) { p.pos.y = -bound; p.vel.y *= -0.5; }
+    if (p.pos.y >  bound) { p.pos.y =  bound; p.vel.y *= -0.5; }
 
-    // Sla de update op
+    // Sla de bijgewerkte data op in de GPU buffer
     particles[index] = p;
 }
 
@@ -37,16 +69,18 @@ struct VertexOutput {
 @vertex
 fn vertexMain(@location(0) pos: vec2<f32>) -> VertexOutput {
     var output: VertexOutput;
-    // Zet de 2D positie om naar 4D clip space clip-space
+    // Zet de 2D positie om naar 4D clip-space
     output.position = vec4<f32>(pos, 0.0, 1.0);
     return output;
 }
 
 @fragment
 fn fragmentMain() -> @location(0) vec4<f32> {
+    // Kleur de vloeistof rood (zoals in jouw origineel)
     return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 }
 `;
+
 
 class FluidSimulation {
 
