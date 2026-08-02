@@ -5,4 +5,4 @@
     "strict": true,
     "types": ["@webgpu/types"]
   }
-}npm install --save-dev @webgpu/types
+}
