@@ -151,4 +151,9 @@ const fluidSimulation = new FluidSimulation(canvas);
 
 fluidSimulation.initGPU().then(() => {
 	fluidSimulation.initBuffers();
+
+	simulation.initBuffers(10000);
+
+	simulation.initPipelines();
+    simulation.frame();
 });
