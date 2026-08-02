@@ -59,3 +59,4 @@ const canvas = document.getElementById("canvas");
 const fluidSimulation = new FluidSimulation(canvas);
 
 fluidSimulation.initGPU();
+fluidSimulation.initBuffers();
