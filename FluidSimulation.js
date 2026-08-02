@@ -151,7 +151,7 @@ class FluidSimulator {
 		this.context.configure({
 			device: this.device,
 			format: this.format,
-			alphaMode: "opaque"
+			alphaMode: "premultiplied"
 		});
 	}
 
@@ -293,7 +293,7 @@ class FluidSimulator {
 		const renderPass = commandEncoder.beginRenderPass({
 			colorAttachments: [{
 				view: this.context.getCurrentTexture().createView(),
-				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 1.0 },
+				clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 0.0 },
 				loadOp: "clear",
 				storeOp: "store"
 			}]
