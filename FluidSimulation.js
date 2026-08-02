@@ -22,11 +22,7 @@ class FluidSimulation {
 
 		this.format = navigator.gpu.getPreferredCanvasFormat();
 
-		this.context.configure({
-			device: this.device,
-			format: this.format,
-			alphaMode: "opaque" // Maximizes rendering speed for full-frame simulations
-		});
+		this.context.configure({ device: this.device, format: this.format, alphaMode: "opaque" });
 
 		console.log("WebGPU initialization complete! Context bound successfully.");
 		return true;
