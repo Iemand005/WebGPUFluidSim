@@ -317,4 +317,4 @@ fluidSimulation.initGPU().then(() => {
 	fluidSimulation.frame();
 });
 
-window.oncontextmenu = (e) => { e.preventDefault(); }; // Disable right-click context menu on the canvas
+window.oncontextmenu = e => e.preventDefault();
