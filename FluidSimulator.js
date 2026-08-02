@@ -62,11 +62,11 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let mouse_dist = length(to_mouse);
     if (mouse_dist < mouseState.radius && mouse_dist > 0.0001) {
         let influence = 1.0 - (mouse_dist / mouseState.radius);
-        let mouse_force = normalize(to_mouse) * influence * 0.0012 * dtScale;
+        let mouse_force = normalize(to_mouse) * influence * 0.0035 * dtScale;
 
         if (mouseState.is_active != 0u) {
             p.vel -= mouse_force;
-            p.vel += mouseState.vel * 0.001;
+            p.vel += mouseState.vel * 0.003;
         } else {
             p.vel += mouse_force;
         }
